@@ -1,20 +1,7 @@
 # Cloudflare Bulk Management for Laravel
 
 Install
-- Download the folder inside laravel directory into a sub directory for example packages
-- Add this to composer.json
-```json
-    "repositories": [
-        {
-            "type": "path",
-            "options": {
-                "symlink": true
-            },
-            "url": "./packages/cloudflare"
-        }
-    ],
-```
-- Change composer.json "minimum-stability" to "dev"
+
 - Run 
 ```bash
 composer require space/cloudflare
