@@ -4,7 +4,7 @@ Install
 
 - Run 
 ```bash
-composer require space/cloudflare
+composer require sz4h/cloudflare
 ```
 - Run 
 ```bash
