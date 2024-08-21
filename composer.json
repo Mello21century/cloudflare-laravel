@@ -1,0 +1,44 @@
+{
+    "name": "space/cloudflare",
+    "description": "Cloudflare interface",
+    "license": "license",
+    "authors": [
+        {
+            "name": "Ahmed Safaa",
+            "email": "ahmed@sz4h.com",
+            "homepage": "http://sz4h.com"
+        }
+    ],
+    "homepage": "https://github.com/sz4h/cloudflare",
+    "keywords": [
+        "Laravel",
+        "Admin"
+    ],
+    "require": {
+        "cloudflare/sdk": "dev-master"
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "git@github.com:ArashDevelops/cloudflare-php.git"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Space\\Cloudflare\\": "src/"
+        },
+        "files": [
+            "helpers/helpers.php"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Space\\Cloudflare\\CloudflareServiceProvider"
+            ],
+            "aliases": {
+                "Admin": "Space\\Cloudflare\\Facades\\Cloudflare"
+            }
+        }
+    }
+}
