@@ -41,31 +41,107 @@ class Cloudflare
         return $this->dns->addRecord($zoneId, $type, $name, $content, proxied: false, priority: $priority);
     }
 
-    public function setCpanel(string $zoneId, string $ip): void
+    public function setCpanel(string $zoneId, string $ip, ?string $spf = null, ?string $dkim = null): void
     {
-        $this->setDns($zoneId, '@', $ip);
-        $this->setDns($zoneId, 'www', $ip);
-        $this->setDns($zoneId, 'mail', $ip);
-        $this->setDns($zoneId, 'cpcalendars', $ip);
-        $this->setDns($zoneId, 'autodiscover', $ip);
-        $this->setDns($zoneId, 'cpcontacts', $ip);
-        $this->setDns($zoneId, 'whm', $ip);
-        $this->setDns($zoneId, 'webdisk', $ip);
-        $this->setDns($zoneId, 'autoconfig', $ip);
-        $this->setDns($zoneId, 'cpanel', $ip);
-        $this->setDns($zoneId, 'webmail', $ip);
-        $this->setDns($zoneId, '@', 'mx1.spamfiltering.io.', 'MX', 10);
-        $this->setDns($zoneId, '@', 'mx2.spamfiltering.io.', 'MX', 20);
+        $posts = [
+            [
+                'name' => '@',
+                'content' => $ip,
+                'proxied' => false,
+                'type' => 'A'
+            ],
+            [
+                'name' => 'www',
+                'content' => $ip,
+                'proxied' => false,
+                'type' => 'A'
+            ],
+            [
+                'name' => 'mail',
+                'content' => $ip,
+                'proxied' => false,
+                'type' => 'A'
+            ],
+            [
+                'name' => 'cpcalendars',
+                'content' => $ip,
+                'proxied' => false,
+                'type' => 'A'
+            ],
+            [
+                'name' => 'autodiscover',
+                'content' => $ip,
+                'proxied' => false,
+                'type' => 'A'
+            ],
+            [
+                'name' => 'cpcontacts',
+                'content' => $ip,
+                'proxied' => false,
+                'type' => 'A'
+            ],
+            [
+                'name' => 'whm',
+                'content' => $ip,
+                'proxied' => false,
+                'type' => 'A'
+            ],
+            [
+                'name' => 'webdisk',
+                'content' => $ip,
+                'proxied' => false,
+                'type' => 'A'
+            ],
+            [
+                'name' => 'autoconfig',
+                'content' => $ip,
+                'proxied' => false,
+                'type' => 'A'
+            ],
+            [
+                'name' => 'cpanel',
+                'content' => $ip,
+                'proxied' => false,
+                'type' => 'A'
+            ],
+            [
+                'name' => 'webmail',
+                'content' => $ip,
+                'proxied' => false,
+                'type' => 'A'
+            ],
+        ];
+        if (!is_null($spf))
+           $posts[] = [
+               'name' => '@',
+               'content' => '"' . $spf . '"',
+               'type' => 'TXT'
+           ];
+        else
+            $posts[] = [
+                'name' => '@',
+                'content' => '"v=spf1 ip4:' . $ip . ' +a +mx -all"',
+                'type' => 'TXT'
+            ];
+        if (!is_null($dkim))
+            $posts[] = [
+                'name' => 'default._domainkey',
+                'content' => '"' . $dkim . '"',
+                'type' => 'TXT'
+            ];
+        else
+            $posts[] = [
+                'name' => 'default._domainkey',
+                'content' => '"v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAo9/zl6x6PKuAYEpno0W5VO6z3W6AoiP0Oi4V0XBW98MU9eZ8Qb3+gwHp5XAe1eSzHuYCvRTbvfRsTkDVEisC2dH/TPahpzZGhhXIznT36WT2z5OtCvHjvIYTtg1o1uru4TaKkCjkmSbXeAG9fuvodNRDYNeag5L8mRlhGc5ROCT88YV4RN0lqSgnLDcwo/Pi4" "\010Kd2qKFF3pbk+lKsRAcXEgmKoJSNv7GicruQ7v04uF/1sQhGvrhv86z83AS930ClAJ0eQGG87PGOOU+sVute7qRhgBocMtLlEQWg4S6d20W9GTfVvNVAfqvjGz9DbbdIPfIXnbtXolLmFrRTH1eiSQIDAQAB;"',
+                'type' => 'TXT'
+            ];
+        $this->dns->batchRecords(zoneID: $zoneId,posts: $posts);
     }
 
     public function cleanDns(string $zoneId): bool
     {
-        $records = $this->getDns($zoneId);
-        if (!$records)
-            return false;
-        foreach ($records as $record) {
-            $this->dns->deleteRecord($zoneId, $record->id);
-        }
-        return true;
+        $records = $this->getDns($zoneId, 200);
+        $ids = collect($records)->pluck('id')->map(fn($id) => ['id' => $id]);
+        return $this->dns->batchRecords($zoneId, $ids->toArray());
     }
 }

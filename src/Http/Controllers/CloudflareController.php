@@ -1,4 +1,5 @@
 <?php
+
 namespace Space\Cloudflare\Http\Controllers;
 
 use App\Http\Controllers\Controller;
@@ -16,24 +17,32 @@ class CloudflareController extends Controller
 
     public function attach(string $zoneId)
     {
-        return view('cloudflare::cloudflare.attach',compact('zoneId'));
+        return view('cloudflare::cloudflare.attach', compact('zoneId'));
     }
 
-    public function store(StoreCpanelRequest $request,Cloudflare $cloudflare)
+    public function store(StoreCpanelRequest $request, Cloudflare $cloudflare)
     {
         try {
-        $cloudflare->setCpanel($request->validated('zoneId'), $request->validated('ip'));
-
-        } catch (ResponseException) {
-
+            $cloudflare->setCpanel(
+                $request->validated('zoneId'),
+                $request->validated('ip'),
+                $request->validated('spf'),
+                $request->validated('dkim')
+            );
+        } catch (ResponseException $e) {
+            dd($e->getMessage());
         }
         return to_route('cloudflare.index');
     }
 
-    public function destroy($zoneId,Cloudflare $cloudflare)
+    public function destroy($zoneId, Cloudflare $cloudflare)
     {
         set_time_limit(0);
-        $cloudflare->cleanDns($zoneId);
+        try {
+            $cloudflare->cleanDns($zoneId);
+        } catch (ResponseException) {
+
+        }
         return redirect()->back();
     }
 }

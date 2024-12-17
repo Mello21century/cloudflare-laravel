@@ -23,7 +23,9 @@ class StoreCpanelRequest extends FormRequest
     {
         return [
             'zoneId' => 'required',
-            'ip' => 'required|ipv4'
+            'ip' => 'required|ipv4',
+            'spf' => '',
+            'dkim' => '',
         ];
     }
 }
