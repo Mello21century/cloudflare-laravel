@@ -2,8 +2,9 @@
 
 @section('contents')
 
-    <form action="{{ route('cloudflare.store') }}" method="POST">
+    <form action="{{ route('cloudflare.update', $zoneId) }}" method="POST">
         @csrf
+        @method('PUT')
         <input type="hidden" name="zoneId" value="{{ $zoneId }}">
         <label for="ip">IP</label>
         <input type="text" name="ip" placeholder="IP Address" class="w-full border rounded mb-3" id="ip">

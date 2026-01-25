@@ -4,6 +4,8 @@ namespace Space\Cloudflare\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Cloudflare\API\Adapter\ResponseException;
+use Illuminate\Http\Request;
+use Space\Cloudflare\Http\Requests\CreateDomainRequest;
 use Space\Cloudflare\Http\Requests\StoreCpanelRequest;
 use Space\Cloudflare\Services\Cloudflare;
 
@@ -19,8 +21,20 @@ class CloudflareController extends Controller
     {
         return view('cloudflare::cloudflare.attach', compact('zoneId'));
     }
+    public function create()
+    {
+        return view('cloudflare::cloudflare.create');
+    }
 
-    public function store(StoreCpanelRequest $request, Cloudflare $cloudflare)
+    public function store(CreateDomainRequest $request, Cloudflare $cloudflare)
+    {
+        $result = $cloudflare->addDomain($request->validated('domain'));
+        return redirect()->route('cloudflare::cloudflare.index')
+            ->withMessage('Domain created successfully')
+            ->withNameServers($result->name_servers);
+    }
+
+    public function update(StoreCpanelRequest $request, Cloudflare $cloudflare, $zoneId)
     {
         try {
             $cloudflare->setCpanel(

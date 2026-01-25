@@ -31,6 +31,11 @@
 <!-- ====== Features Section Start -->
 <section class="py-5 dark:bg-dark">
     <div class="container mx-auto">
+        @if(session()->has('message'))
+            <div class="bg-emerald-200 bold px-4 py-2 rounded my-2">
+                {{ session('message') }}
+            </div>
+        @endif
         @yield('contents')
     </div>
 </section>

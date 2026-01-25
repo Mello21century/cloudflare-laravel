@@ -31,6 +31,11 @@ class Cloudflare
         return $this->zones->listZones(perPage: $perPage)?->result;
     }
 
+    public function addDomain($domain): \stdClass
+    {
+        return $this->zones->addZone(name: $domain);
+    }
+
     public function getDns(string $zoneId, $perPage = 50): ?array
     {
         return $this->dns->listRecords(zoneID: $zoneId, perPage: $perPage)?->result;
