@@ -6,6 +6,7 @@ use Cloudflare\API\Adapter\Guzzle;
 use Cloudflare\API\Auth\APIKey;
 use Cloudflare\API\Endpoints\DNS;
 use Cloudflare\API\Endpoints\Zones;
+use stdClass;
 
 class Cloudflare
 {
@@ -31,7 +32,7 @@ class Cloudflare
         return $this->zones->listZones(perPage: $perPage)?->result;
     }
 
-    public function addDomain($domain): \stdClass
+    public function addDomain($domain): stdClass
     {
         return $this->zones->addZone(name: $domain);
     }
@@ -41,9 +42,25 @@ class Cloudflare
         return $this->dns->listRecords(zoneID: $zoneId, perPage: $perPage)?->result;
     }
 
-    public function setDns(string $zoneId, string $name, string $content, string $type = 'A', string $priority = ''): bool
+    public function setDns(string $zoneId, string $name, string $content, string $type = 'A', string $priority = '', bool $proxied = false): bool
     {
-        return $this->dns->addRecord($zoneId, $type, $name, $content, proxied: false, priority: $priority);
+        return $this->dns->addRecord($zoneId, $type, $name, $content, proxied: $proxied, priority: $priority);
+    }
+
+    public function deleteDns(string $zoneId,string $recordId): string
+    {
+        return $this->dns->deleteRecord(zoneID: $zoneId, recordID: $recordId);
+    }
+
+    public function updateDns(string $zoneId, string $recordId, string $name, string $content, string $type = 'A', bool $proxied = false): stdClass
+    {
+        try {
+
+            $return = $this->dns->updateRecordDetails(zoneID: $zoneId, recordID: $recordId, details: compact('name', 'content', 'type', 'proxied'));
+        } catch (\Exception $e) {
+            dd($e);
+        }
+        return $return;
     }
 
     public function setCpanel(string $zoneId, string $ip, ?string $spf = null, ?string $dkim = null): void
@@ -117,11 +134,11 @@ class Cloudflare
             ],
         ];
         if (!is_null($spf))
-           $posts[] = [
-               'name' => '@',
-               'content' => '"' . $spf . '"',
-               'type' => 'TXT'
-           ];
+            $posts[] = [
+                'name' => '@',
+                'content' => '"' . $spf . '"',
+                'type' => 'TXT'
+            ];
         else
             $posts[] = [
                 'name' => '@',
@@ -140,7 +157,7 @@ class Cloudflare
                 'content' => '"v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAo9/zl6x6PKuAYEpno0W5VO6z3W6AoiP0Oi4V0XBW98MU9eZ8Qb3+gwHp5XAe1eSzHuYCvRTbvfRsTkDVEisC2dH/TPahpzZGhhXIznT36WT2z5OtCvHjvIYTtg1o1uru4TaKkCjkmSbXeAG9fuvodNRDYNeag5L8mRlhGc5ROCT88YV4RN0lqSgnLDcwo/Pi4" "\010Kd2qKFF3pbk+lKsRAcXEgmKoJSNv7GicruQ7v04uF/1sQhGvrhv86z83AS930ClAJ0eQGG87PGOOU+sVute7qRhgBocMtLlEQWg4S6d20W9GTfVvNVAfqvjGz9DbbdIPfIXnbtXolLmFrRTH1eiSQIDAQAB;"',
                 'type' => 'TXT'
             ];
-        $this->dns->batchRecords(zoneID: $zoneId,posts: $posts);
+        $this->dns->batchRecords(zoneID: $zoneId, posts: $posts);
     }
 
     public function cleanDns(string $zoneId): bool

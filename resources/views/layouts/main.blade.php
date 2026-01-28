@@ -9,6 +9,7 @@
     </title>
     <script src="https://cdn.tailwindcss.com"></script>
 
+    @stack('css')
 </head>
 
 <body>
@@ -44,5 +45,6 @@
 
 <!-- ====== All Scripts -->
 
+@stack('js')
 </body>
 </html>

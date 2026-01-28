@@ -2,7 +2,7 @@
 
 @section('contents')
 
-    <form action="{{ route('cloudflare.update', $zoneId) }}" method="POST">
+    <form action="{{ route('cloudflare.add-cpanel', $zoneId) }}" method="POST">
         @csrf
         @method('PUT')
         <input type="hidden" name="zoneId" value="{{ $zoneId }}">

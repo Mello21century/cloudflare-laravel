@@ -15,14 +15,16 @@
                 <td class="p-2">{{ $domain->id }}</td>
                 <td class="p-2">{{ $domain->name }}</td>
                 <td class="p-2">{{ $domain->account->name }}</td>
-                <td class="p-2">
+                <td class="p-2 flex items-center gap-2">
                     <a href="{{ route('cloudflare.attach',$domain->id) }}"
-                       class="bg-green-600 text-white px-2 py-1 text-xs rounded-lg">Create Default cPanel DNS</a>
+                       class="bg-green-600 text-white px-2 py-1 text-xs rounded-lg">Add cPanel</a>
+                    <a href="{{ route('cloudflare.show',$domain->id) }}"
+                       class="bg-orange-600 text-white px-2 py-1 text-xs rounded-lg">Edit</a>
                     <form action="{{ route('cloudflare.destroy',$domain->id) }}"
                           onsubmit="return confirm('Are you sure?')" method="POST">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="bg-red-600 text-white px-2 py-1 text-xs rounded-lg">Clear Old DNS
+                        <button type="submit" class="bg-red-600 text-white px-2 py-1 text-xs rounded-lg">Clear DNS
                         </button>
                     </form>
                 </td>
