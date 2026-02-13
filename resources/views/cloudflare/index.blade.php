@@ -15,6 +15,7 @@
                 <td class="p-2">{{ $domain->id }}</td>
                 <td class="p-2">{{ $domain->name }}</td>
                 <td class="p-2">{{ $domain->account->name }}</td>
+                <td class="p-2">{!! implode('<br>',$domain->name_servers) !!}</td>
                 <td class="p-2 flex items-center gap-2">
                     <a href="{{ route('cloudflare.attach',$domain->id) }}"
                        class="bg-green-600 text-white px-2 py-1 text-xs rounded-lg">Add cPanel</a>

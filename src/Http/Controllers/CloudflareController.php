@@ -60,7 +60,7 @@ class CloudflareController extends Controller
     public function store(CreateDomainRequest $request, Cloudflare $cloudflare)
     {
         $result = $cloudflare->addDomain($request->validated('domain'));
-        return redirect()->route('cloudflare::cloudflare.index')
+        return redirect()->route('cloudflare.index')
             ->withMessage('Domain created successfully')
             ->withNameServers($result->name_servers);
     }
