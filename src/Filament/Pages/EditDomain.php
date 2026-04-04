@@ -90,18 +90,20 @@ class EditDomain extends Page implements HasTable, HasForms
                 Action::make('editRecord')
                     ->icon('heroicon-o-pencil')
                     ->label('Edit')
-                    ->fillForm(fn($record) => [
-                        'name' => $record->name,
-                        'type' => $record->type,
-                        'content' => $record->content,
-                        'proxied' => $record->proxied ?? false,
-                    ])
+                    ->fillForm(function ($record) {
+                        return [
+                            'name' => $record['name'],
+                            'type' => $record['type'],
+                            'content' => $record['content'],
+                            'proxied' => $record['proxied'] ?? false,
+                        ];
+                    })
                     ->schema($this->dnsRecordForm())
                     ->action(function (array $data, $record): void {
                         try {
                             app(Cloudflare::class)->updateDns(
                                 zoneId: $this->zoneId,
-                                recordId: $record->id,
+                                recordId: $record['id'],
                                 name: $data['name'],
                                 content: $data['content'],
                                 type: $data['type'],
@@ -130,7 +132,7 @@ class EditDomain extends Page implements HasTable, HasForms
                         try {
                             app(Cloudflare::class)->deleteDns(
                                 zoneId: $this->zoneId,
-                                recordId: $record->id,
+                                recordId: $record['id'],
                             );
 
                             Notification::make()
@@ -203,11 +205,15 @@ class EditDomain extends Page implements HasTable, HasForms
 
     public function getTableRecords(): Collection
     {
-        return collect(app(Cloudflare::class)->getDns($this->zoneId) ?? []);
+        $data = collect(app(Cloudflare::class)->getDns($this->zoneId))->map(function ($record) {
+            $record->__key = $domain->id ?? '';
+            return (array)$record;
+        })->toArray();
+        return collect($data ?? []);
     }
 
     public function getTableRecordKey($record): string
     {
-        return $record->id;
+        return $record['id'];
     }
 }

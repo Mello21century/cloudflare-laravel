@@ -94,11 +94,11 @@ class ListDomains extends Page implements HasTable
             ->recordActions([
                 Action::make('view')
                     ->icon('heroicon-o-eye')
-                    ->url(fn($record) => ViewDomain::getUrl(['zoneId' => $record->id])),
+                    ->url(fn($record) => ViewDomain::getUrl(['zoneId' => $record['id']])),
 
                 Action::make('edit')
                     ->icon('heroicon-o-pencil')
-                    ->url(fn($record) => EditDomain::getUrl(['zoneId' => $record->id])),
+                    ->url(fn($record) => EditDomain::getUrl(['zoneId' => $record['id']])),
 
                 Action::make('cpanel')
                     ->icon('heroicon-o-server-stack')
@@ -116,7 +116,7 @@ class ListDomains extends Page implements HasTable
                     ->action(function (array $data, $record): void {
                         try {
                             app(Cloudflare::class)->setCpanel(
-                                $record->id,
+                                $record['id'],
                                 $data['ip'],
                                 $data['spf'] ?? null,
                                 $data['dkim'] ?? null
@@ -142,7 +142,7 @@ class ListDomains extends Page implements HasTable
                     ->requiresConfirmation()
                     ->action(function ($record): void {
                         try {
-                            app(Cloudflare::class)->cleanDns($record->id);
+                            app(Cloudflare::class)->cleanDns($record['id']);
 
                             Notification::make()
                                 ->title('All DNS records cleared.')
@@ -173,12 +173,16 @@ class ListDomains extends Page implements HasTable
         $domains = app(Cloudflare::class)->getDomains(
             name: blank($searchName) ? null : $searchName
         );
+        $domains = collect($domains)->map(function ($domain) {
+            $domain->__key = $domain->id ?? '';
+            return (array)$domain;
+        })->toArray();
 
         return collect($domains ?? []);
     }
 
     public function getTableRecordKey($record): string
     {
-        return $record->id;
+        return $record['id'] ?? '';
     }
 }

@@ -87,11 +87,15 @@ class ViewDomain extends Page implements HasTable
 
     public function getTableRecords(): Collection
     {
-        return collect(app(Cloudflare::class)->getDns($this->zoneId) ?? []);
+        $data = collect(app(Cloudflare::class)->getDns($this->zoneId))->map(function ($record) {
+            $record->__key = $domain->id ?? '';
+            return (array)$record;
+        })->toArray();
+        return collect($data ?? []);
     }
 
     public function getTableRecordKey($record): string
     {
-        return $record->id;
+        return $record['id'];
     }
 }
