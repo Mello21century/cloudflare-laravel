@@ -74,7 +74,7 @@ class ListDomains extends Page implements HasTable
 
                 TextColumn::make('name_servers')
                     ->label('Nameservers')
-                    ->formatStateUsing(fn($state) => is_array($state) ? implode(', ', $state) : $state),
+                    ->formatStateUsing(fn($state) => is_array($state) ? implode('<br> ', $state) : $state),
             ])
             ->filters([
                 Filter::make('domain')
@@ -163,26 +163,15 @@ class ListDomains extends Page implements HasTable
                     ->icon('heroicon-o-plus')
                     ->url(CreateDomain::getUrl()),
             ])
+            ->records(function (?array $filters): Collection {
+                $searchName = $filters['domain']['name'] ?? null;
+
+                return collect(app(Cloudflare::class)->getDomains(
+                    name: blank($searchName) ? null : $searchName
+                ))
+                    ->map(fn($domain) => (array) $domain)
+                    ->keyBy('id');
+            })
             ->paginated(false);
-    }
-
-    public function getTableRecords(): Collection
-    {
-        $searchName = $this->tableFilters['domain']['name'] ?? null;
-
-        $domains = app(Cloudflare::class)->getDomains(
-            name: blank($searchName) ? null : $searchName
-        );
-        $domains = collect($domains)->map(function ($domain) {
-            $domain->__key = $domain->id ?? '';
-            return (array)$domain;
-        })->toArray();
-
-        return collect($domains ?? []);
-    }
-
-    public function getTableRecordKey($record): string
-    {
-        return $record['id'] ?? '';
     }
 }

@@ -82,20 +82,11 @@ class ViewDomain extends Page implements HasTable
                     ->label('TTL')
                     ->formatStateUsing(fn($state) => $state === 1 ? 'Auto' : $state),
             ])
+            ->records(function (): Collection {
+                return collect(app(Cloudflare::class)->getDns($this->zoneId))
+                    ->map(fn($record) => (array) $record)
+                    ->keyBy('id');
+            })
             ->paginated(false);
-    }
-
-    public function getTableRecords(): Collection
-    {
-        $data = collect(app(Cloudflare::class)->getDns($this->zoneId))->map(function ($record) {
-            $record->__key = $domain->id ?? '';
-            return (array)$record;
-        })->toArray();
-        return collect($data ?? []);
-    }
-
-    public function getTableRecordKey($record): string
-    {
-        return $record['id'];
     }
 }

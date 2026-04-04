@@ -176,6 +176,11 @@ class EditDomain extends Page implements HasTable, HasForms
                         }
                     }),
             ])
+            ->records(function (): Collection {
+                return collect(app(Cloudflare::class)->getDns($this->zoneId))
+                    ->map(fn($record) => (array) $record)
+                    ->keyBy('id');
+            })
             ->paginated(false);
     }
 
@@ -203,17 +208,4 @@ class EditDomain extends Page implements HasTable, HasForms
         ];
     }
 
-    public function getTableRecords(): Collection
-    {
-        $data = collect(app(Cloudflare::class)->getDns($this->zoneId))->map(function ($record) {
-            $record->__key = $record->id ?? '';
-            return (array)$record;
-        })->toArray();
-        return collect($data ?? []);
-    }
-
-    public function getTableRecordKey($record): string
-    {
-        return $record['id'];
-    }
 }
