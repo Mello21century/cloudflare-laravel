@@ -206,7 +206,7 @@ class EditDomain extends Page implements HasTable, HasForms
     public function getTableRecords(): Collection
     {
         $data = collect(app(Cloudflare::class)->getDns($this->zoneId))->map(function ($record) {
-            $record->__key = $domain->id ?? '';
+            $record->__key = $record->id ?? '';
             return (array)$record;
         })->toArray();
         return collect($data ?? []);
