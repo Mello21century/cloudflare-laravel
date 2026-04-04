@@ -12,9 +12,9 @@ class Cloudflare
 {
 
     protected APIKey $key;
-    protected Guzzle $adapter;
-    private DNS $dns;
-    private Zones $zones;
+    public Guzzle $adapter;
+    public DNS $dns;
+    public Zones $zones;
 
     /**
      * Create a new class instance.

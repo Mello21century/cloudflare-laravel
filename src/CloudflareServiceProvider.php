@@ -3,6 +3,7 @@
 namespace Space\Cloudflare;
 
 use Illuminate\Support\ServiceProvider;
+use Space\Cloudflare\Commands\CloudflareReplaceIpCommand;
 use Space\Cloudflare\Services\Cloudflare;
 
 class CloudflareServiceProvider extends ServiceProvider
@@ -12,7 +13,11 @@ class CloudflareServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
         $this->loadViewsFrom(__DIR__ . '/../resources/views/','cloudflare');
         $this->publishes([__DIR__ . '/../config/cloudflare.php' => config_path('cloudflare.php')], 'cloudflare');
-
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                CloudflareReplaceIpCommand::class,
+            ]);
+        }
     }
 
     public function register(): void
