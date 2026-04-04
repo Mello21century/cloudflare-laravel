@@ -27,9 +27,9 @@ class Cloudflare
         $this->zones = new Zones($this->adapter);
     }
 
-    public function getDomains($perPage = 50): ?array
+    public function getDomains($perPage = 50, ?string $name = null): ?array
     {
-        return $this->zones->listZones(perPage: $perPage)?->result;
+        return $this->zones->listZones(name: $name ?? '', perPage: $perPage)?->result;
     }
 
     public function addDomain($domain): stdClass
