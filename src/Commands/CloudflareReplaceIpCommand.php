@@ -3,7 +3,10 @@
 namespace Space\Cloudflare\Commands;
 
 use Illuminate\Console\Command;
-use Space\Cloudflare\Services\Cloudflare;
+use Cloudflare\API\Auth\APIToken;
+use Cloudflare\API\Adapter\Guzzle;
+use Cloudflare\API\Endpoints\Zones;
+use Cloudflare\API\Endpoints\DNS;
 
 class CloudflareReplaceIpCommand extends Command
 {
@@ -31,24 +34,108 @@ class CloudflareReplaceIpCommand extends Command
         }
 
 
+        $cloudflare = app('cloudflare');
+
+        $adapter = $cloudflare->adapter;
+        $zonesEndpoint = $cloudflare->zones;
+        $dnsEndpoint = $cloudflare->dns;
+
         $this->info("Scanning all zones. Replace {$oldIp} -> {$newIp}");
         $this->line('Types: ' . implode(',', $types) . ' | ' . ($dryRun ? 'DRY RUN' : 'LIVE'));
 
-        $summary = app(Cloudflare::class)->replaceIp($oldIp, $newIp, $types, $dryRun, $perPage);
+        $page = 1;
+        $totalUpdated = 0;
+        $totalMatched = 0;
 
-        foreach ($summary['records'] as $record) {
-            $this->line("Zone: {$record['zone_name']} ({$record['zone_id']})");
-            $this->line("  - MATCH {$record['record_type']} {$record['record_name']} = {$record['old_ip']}");
+        while (true) {
+            // SDK Zones endpoint doesn't always expose pagination nicely across versions,
+            // but listZones() accepts page/perPage in many releases.
+            $zones = $zonesEndpoint->listZones(page: $page, perPage: $perPage);
 
-            if ($record['updated']) {
-                $this->line("    UPDATED -> {$record['new_ip']}");
-            } elseif (!$dryRun) {
-                $this->error("    FAILED updating {$record['record_type']} {$record['record_name']}");
+            if (empty($zones->result)) {
+                break;
             }
+
+            foreach ($zones->result as $zone) {
+                $zoneId = $zone->id ?? null;
+                $zoneName = $zone->name ?? '(unknown)';
+
+                if (!$zoneId) {
+                    continue;
+                }
+
+
+                $this->info("Zone: {$zoneName} ({$zoneId})");
+
+                foreach ($types as $type) {
+                    $dnsPage = 1;
+
+                    while (true) {
+                        // listRecords($zoneId, $type, $name, $content, $page, $perPage, $order, $direction, $match)
+                        $records = $dnsEndpoint->listRecords($zoneId, $type, '', $oldIp, $dnsPage, $perPage);
+
+                        if (empty($records->result)) {
+                            break;
+                        }
+
+                        foreach ($records->result as $r) {
+                            $recordId = $r->id ?? null;
+                            $recordName = $r->name ?? '';
+                            $recordType = $r->type ?? '';
+                            $recordContent = $r->content ?? '';
+
+                            if (!$recordId) {
+                                continue;
+                            }
+
+                            // Safety check: ensure its EXACT match to old IP
+                            if (trim($recordContent) !== $oldIp) {
+                                continue;
+                            }
+
+                            $totalMatched++;
+                            $this->line("  - MATCH {$recordType} {$recordName} = {$recordContent}");
+
+                            if ($dryRun) {
+                                continue;
+                            }
+
+                            // Build an updated record payload.
+                            // Keep proxied/ttl if present.
+                            $ttl = $r->ttl ?? 1;
+                            $proxied = property_exists($r, 'proxied') ? (bool)$r->proxied : null;
+
+                            $ok = $dnsEndpoint->updateRecordDetails(
+                                $zoneId,
+                                $recordId,
+                                [
+                                    'type' => $recordType,
+                                    'name' => $recordName,
+                                    'content' => $newIp,
+                                    'ttl' => $ttl,
+                                    // only send proxied if known (some types don’t have it)
+                                    ...($proxied !== null ? ['proxied' => $proxied] : []),
+                                ]
+                            );
+
+                            if ($ok) {
+                                $totalUpdated++;
+                                $this->line("    UPDATED -> {$newIp}");
+                            } else {
+                                $this->error("    FAILED updating {$recordType} {$recordName}");
+                            }
+                        }
+
+                        $dnsPage++;
+                    }
+                }
+            }
+
+            $page++;
         }
 
         $this->newLine();
-        $this->info("Done. Matched: {$summary['matched']} | Updated: {$summary['updated']} | Failed: {$summary['failed']}" . ($dryRun ? ' (dry-run)' : ''));
+        $this->info("Done. Matched: {$totalMatched} | Updated: {$totalUpdated}" . ($dryRun ? ' (dry-run)' : ''));
 
         return self::SUCCESS;
     }
