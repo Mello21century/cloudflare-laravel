@@ -4,6 +4,7 @@ namespace Space\Cloudflare\Filament\Pages;
 
 use Cloudflare\API\Adapter\ResponseException;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Panel;
@@ -158,6 +159,56 @@ class ListDomains extends Page implements HasTable
                     }),
             ])
             ->headerActions([
+                Action::make('replaceIp')
+                    ->label('Replace IP')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->schema([
+                        TextInput::make('old_ip')
+                            ->label('Old IP')
+                            ->required()
+                            ->rules(['ip']),
+                        TextInput::make('new_ip')
+                            ->label('New IP')
+                            ->required()
+                            ->rules(['ip']),
+                        TextInput::make('types')
+                            ->label('Record types')
+                            ->default('A,AAAA')
+                            ->helperText('Comma-separated Cloudflare DNS record types to scan.')
+                            ->required(),
+                        Toggle::make('dry_run')
+                            ->label('Dry run only')
+                            ->default(true)
+                            ->helperText('Preview matching records without changing Cloudflare.'),
+                    ])
+                    ->requiresConfirmation()
+                    ->modalHeading('Replace DNS record IPs')
+                    ->modalDescription('This scans all Cloudflare zones and replaces records whose content exactly matches the old IP.')
+                    ->action(function (array $data): void {
+                        try {
+                            $types = array_filter(array_map('trim', explode(',', (string) ($data['types'] ?? 'A,AAAA'))));
+                            $summary = app(Cloudflare::class)->replaceIp(
+                                $data['old_ip'],
+                                $data['new_ip'],
+                                $types,
+                                (bool) ($data['dry_run'] ?? true)
+                            );
+
+                            Notification::make()
+                                ->title(($data['dry_run'] ?? true) ? 'IP replacement dry run completed.' : 'IP replacement completed.')
+                                ->body("Matched: {$summary['matched']} | Updated: {$summary['updated']} | Failed: {$summary['failed']}")
+                                ->success()
+                                ->send();
+                        } catch (\Throwable $e) {
+                            Notification::make()
+                                ->title('Failed to replace IP')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+
                 Action::make('create')
                     ->label('Add Domain')
                     ->icon('heroicon-o-plus')
