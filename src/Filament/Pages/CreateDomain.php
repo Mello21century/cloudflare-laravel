@@ -10,6 +10,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Panel;
 use Filament\Schemas\Schema;
+use Space\Cloudflare\Enums\CloudflareAbility;
 use Space\Cloudflare\Filament\CloudflarePlugin;
 use Space\Cloudflare\Services\Cloudflare;
 
@@ -25,6 +26,19 @@ class CreateDomain extends Page implements HasForms
     protected static bool $shouldRegisterNavigation = false;
 
     public ?array $data = [];
+
+    public static function canAccess(array $parameters = []): bool
+    {
+        return CloudflarePlugin::get()->allows(CloudflareAbility::AddDomain);
+    }
+
+    /**
+     * Re-checked on every Livewire request, not only when the page first loads.
+     */
+    public function booted(): void
+    {
+        abort_unless(static::canAccess(), 403);
+    }
 
     public static function getSlug(?Panel $panel = null): string
     {

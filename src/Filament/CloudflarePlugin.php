@@ -2,9 +2,11 @@
 
 namespace Space\Cloudflare\Filament;
 
+use Closure;
 use Filament\Contracts\Plugin;
 use Filament\FilamentManager;
 use Filament\Panel;
+use Space\Cloudflare\Enums\CloudflareAbility;
 use Space\Cloudflare\Filament\Pages\CreateDomain;
 use Space\Cloudflare\Filament\Pages\EditDomain;
 use Space\Cloudflare\Filament\Pages\ListDomains;
@@ -21,6 +23,8 @@ class CloudflarePlugin implements Plugin
     protected string $slug = 'cloudflare';
 
     protected string $navigationLabel = 'Cloudflare';
+
+    protected ?Closure $authorizeUsing = null;
 
     public static function make(): static
     {
@@ -50,6 +54,23 @@ class CloudflarePlugin implements Plugin
     public function boot(Panel $panel): void
     {
         //
+    }
+
+    /**
+     * Decide who may run each action. Without this, every panel user may run all of them.
+     *
+     * @param  Closure(CloudflareAbility): bool  $callback
+     */
+    public function authorizeUsing(Closure $callback): static
+    {
+        $this->authorizeUsing = $callback;
+
+        return $this;
+    }
+
+    public function allows(CloudflareAbility $ability): bool
+    {
+        return $this->authorizeUsing === null || ($this->authorizeUsing)($ability);
     }
 
     public function navigationIcon(string $icon): static

@@ -26,3 +26,12 @@ php artisan vendor:publish --tag=cloudflare
 ```
 
 *** This is a beta version. Install on your own risk ***
+
+## Authorization
+
+Every panel action has its own `Space\Cloudflare\Enums\CloudflareAbility`. Without a callback, every panel user may run all of them.
+
+```php
+\Space\Cloudflare\Filament\CloudflarePlugin::make()
+    ->authorizeUsing(fn (CloudflareAbility $ability): bool => auth()->user()->can($ability->value))
+```

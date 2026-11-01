@@ -20,6 +20,7 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Support\Collection;
 use Space\Cloudflare\Enums\DnsType;
+use Space\Cloudflare\Enums\CloudflareAbility;
 use Space\Cloudflare\Filament\CloudflarePlugin;
 use Space\Cloudflare\Services\Cloudflare;
 
@@ -35,6 +36,20 @@ class EditDomain extends Page implements HasTable, HasForms
     public string $zoneId;
 
     public string $zoneName = '';
+
+    public static function canAccess(array $parameters = []): bool
+    {
+        return CloudflarePlugin::get()->allows(CloudflareAbility::EditDns)
+            || CloudflarePlugin::get()->allows(CloudflareAbility::AddDnsRecord);
+    }
+
+    /**
+     * Re-checked on every Livewire request, not only when the page first loads.
+     */
+    public function booted(): void
+    {
+        abort_unless(static::canAccess(), 403);
+    }
 
     public static function getSlug(?Panel $panel = null): string
     {
@@ -90,6 +105,7 @@ class EditDomain extends Page implements HasTable, HasForms
                 Action::make('editRecord')
                     ->icon('heroicon-o-pencil')
                     ->label('Edit')
+                    ->visible(fn (): bool => CloudflarePlugin::get()->allows(CloudflareAbility::EditDns))
                     ->fillForm(function ($record) {
                         return [
                             'name' => $record['name'],
@@ -126,6 +142,7 @@ class EditDomain extends Page implements HasTable, HasForms
                 Action::make('deleteRecord')
                     ->icon('heroicon-o-trash')
                     ->label('Delete')
+                    ->visible(fn (): bool => CloudflarePlugin::get()->allows(CloudflareAbility::EditDns))
                     ->color('danger')
                     ->requiresConfirmation()
                     ->action(function ($record): void {
@@ -151,6 +168,7 @@ class EditDomain extends Page implements HasTable, HasForms
             ->headerActions([
                 Action::make('addRecord')
                     ->label('Add DNS Record')
+                    ->visible(fn (): bool => CloudflarePlugin::get()->allows(CloudflareAbility::AddDnsRecord))
                     ->icon('heroicon-o-plus')
                     ->schema($this->dnsRecordForm())
                     ->action(function (array $data): void {

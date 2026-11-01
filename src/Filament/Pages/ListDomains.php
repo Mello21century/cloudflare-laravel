@@ -4,6 +4,7 @@ namespace Space\Cloudflare\Filament\Pages;
 
 use Cloudflare\API\Adapter\ResponseException;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Panel;
@@ -14,6 +15,8 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Artisan;
+use Space\Cloudflare\Enums\CloudflareAbility;
 use Space\Cloudflare\Filament\CloudflarePlugin;
 use Space\Cloudflare\Services\Cloudflare;
 
@@ -94,15 +97,18 @@ class ListDomains extends Page implements HasTable
             ->recordActions([
                 Action::make('view')
                     ->icon('heroicon-o-eye')
+                    ->visible(fn (): bool => CloudflarePlugin::get()->allows(CloudflareAbility::ViewDomain))
                     ->url(fn($record) => ViewDomain::getUrl(['zoneId' => $record['id']])),
 
                 Action::make('edit')
                     ->icon('heroicon-o-pencil')
+                    ->visible(fn (): bool => EditDomain::canAccess())
                     ->url(fn($record) => EditDomain::getUrl(['zoneId' => $record['id']])),
 
                 Action::make('cpanel')
                     ->icon('heroicon-o-server-stack')
                     ->label('Add cPanel')
+                    ->visible(fn (): bool => CloudflarePlugin::get()->allows(CloudflareAbility::AddCpanel))
                     ->schema([
                         TextInput::make('ip')
                             ->label('Server IP')
@@ -138,6 +144,7 @@ class ListDomains extends Page implements HasTable
                 Action::make('cleanDns')
                     ->icon('heroicon-o-trash')
                     ->label('Clear DNS')
+                    ->visible(fn (): bool => CloudflarePlugin::get()->allows(CloudflareAbility::ClearDns))
                     ->color('danger')
                     ->requiresConfirmation()
                     ->action(function ($record): void {
@@ -158,9 +165,12 @@ class ListDomains extends Page implements HasTable
                     }),
             ])
             ->headerActions([
+                $this->replaceIpAction(),
+
                 Action::make('create')
                     ->label('Add Domain')
                     ->icon('heroicon-o-plus')
+                    ->visible(fn (): bool => CloudflarePlugin::get()->allows(CloudflareAbility::AddDomain))
                     ->url(CreateDomain::getUrl()),
             ])
             ->records(function (?array $filters): Collection {
@@ -173,5 +183,70 @@ class ListDomains extends Page implements HasTable
                     ->keyBy('id');
             })
             ->paginated(false);
+    }
+
+    protected function replaceIpAction(): Action
+    {
+        return Action::make('replaceIp')
+            ->label('Replace IP')
+            ->icon('heroicon-o-command-line')
+            ->color('warning')
+            ->visible(fn (): bool => CloudflarePlugin::get()->allows(CloudflareAbility::ReplaceIp))
+            ->schema([
+                TextInput::make('old_ip')
+                    ->label('Old IP')
+                    ->required()
+                    ->rules(['ip']),
+                TextInput::make('new_ip')
+                    ->label('New IP')
+                    ->required()
+                    ->rules(['ip']),
+                TextInput::make('types')
+                    ->label('Record types')
+                    ->default('A,AAAA')
+                    ->helperText('Comma-separated DNS record types passed to --types.')
+                    ->required(),
+                Toggle::make('dry_run')
+                    ->label('Dry run only')
+                    ->default(true)
+                    ->helperText('Run with --dry-run so Cloudflare is not changed.'),
+            ])
+            ->requiresConfirmation()
+            ->modalHeading('Run Cloudflare IP replacement')
+            ->modalDescription('This calls the package command: cloudflare:replace-ip {old} {new}.')
+            ->action(function (array $data): void {
+                $arguments = [
+                    'old' => $data['old_ip'],
+                    'new' => $data['new_ip'],
+                    '--types' => $data['types'],
+                ];
+
+                if ((bool) ($data['dry_run'] ?? true)) {
+                    $arguments['--dry-run'] = true;
+                }
+
+                try {
+                    Artisan::call('cloudflare:replace-ip', $arguments);
+
+                    $output = trim(Artisan::output());
+                    preg_match('/Done\.\s*Matched:\s*(\d+)\s*\|\s*Updated:\s*(\d+)/', $output, $matches);
+
+                    $body = $matches
+                        ? "Matched: {$matches[1]} | Updated: {$matches[2]}"
+                        : str($output)->limit(500)->toString();
+
+                    Notification::make()
+                        ->title((bool) ($data['dry_run'] ?? true) ? 'Cloudflare IP dry run completed.' : 'Cloudflare IP replacement completed.')
+                        ->body($body)
+                        ->success()
+                        ->send();
+                } catch (\Throwable $e) {
+                    Notification::make()
+                        ->title('Cloudflare IP replacement failed')
+                        ->body($e->getMessage())
+                        ->danger()
+                        ->send();
+                }
+            });
     }
 }

@@ -10,6 +10,7 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Support\Collection;
+use Space\Cloudflare\Enums\CloudflareAbility;
 use Space\Cloudflare\Filament\CloudflarePlugin;
 use Space\Cloudflare\Services\Cloudflare;
 
@@ -28,6 +29,19 @@ class ViewDomain extends Page implements HasTable
     public string $zoneStatus = '';
 
     public array $nameservers = [];
+
+    public static function canAccess(array $parameters = []): bool
+    {
+        return CloudflarePlugin::get()->allows(CloudflareAbility::ViewDomain);
+    }
+
+    /**
+     * Re-checked on every Livewire request, not only when the page first loads.
+     */
+    public function booted(): void
+    {
+        abort_unless(static::canAccess(), 403);
+    }
 
     public static function getSlug(?Panel $panel = null): string
     {
