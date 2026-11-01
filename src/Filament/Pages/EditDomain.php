@@ -91,7 +91,8 @@ class EditDomain extends Page implements HasTable, HasForms
                 TextColumn::make('content')
                     ->label('Content')
                     ->wrap()
-                    ->limit(80),
+                    ->limit(80)
+                    ->extraCellAttributes(['style' => 'word-break: break-all;']),
 
                 IconColumn::make('proxied')
                     ->boolean()
